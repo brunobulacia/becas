@@ -1,0 +1,16 @@
+{
+  "name": "ms-solicitud",
+  "version": "1.0.0",
+  "description": "Microservicio de Solicitudes - Sistema UniBecas",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.11.0"
+  }
+}

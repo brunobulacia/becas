@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniBecas - Becas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="navbar"></div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- TIPOS DE BECA -->
+        <div class="mb-10">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Tipos de Beca</h2>
+                <button onclick="openTipoModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    + Nuevo Tipo
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tipos-table" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BECAS -->
+        <div>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Becas</h2>
+                <button onclick="openBecaModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    + Nueva Beca
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Porcentaje</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="becas-table" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Tipo Beca -->
+    <div id="modal-tipo" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b">
+                <h3 id="modal-tipo-title" class="text-lg font-bold text-gray-800">Nuevo Tipo de Beca</h3>
+            </div>
+            <form id="form-tipo" class="px-6 py-4 space-y-4">
+                <input type="hidden" id="tipo-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                    <input type="text" id="tipo-nombre" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </form>
+            <div class="px-6 py-4 border-t flex justify-end space-x-3">
+                <button onclick="closeTipoModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancelar</button>
+                <button onclick="saveTipo()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Beca -->
+    <div id="modal-beca" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b">
+                <h3 id="modal-beca-title" class="text-lg font-bold text-gray-800">Nueva Beca</h3>
+            </div>
+            <form id="form-beca" class="px-6 py-4 space-y-4">
+                <input type="hidden" id="beca-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                    <input type="text" id="beca-nombre" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
+                    <textarea id="beca-descripcion" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Porcentaje (%)</label>
+                    <input type="number" id="beca-porcentaje" min="0" max="100" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Beca</label>
+                    <select id="beca-tipo" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Seleccionar tipo...</option>
+                    </select>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="beca-activo" checked class="h-4 w-4 text-indigo-600 rounded border-gray-300">
+                    <label for="beca-activo" class="ml-2 text-sm text-gray-700">Activo</label>
+                </div>
+            </form>
+            <div class="px-6 py-4 border-t flex justify-end space-x-3">
+                <button onclick="closeBecaModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancelar</button>
+                <button onclick="saveBeca()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/navbar.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/becas.js"></script>
+</body>
+</html>

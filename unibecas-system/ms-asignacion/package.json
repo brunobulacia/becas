@@ -1,0 +1,16 @@
+{
+  "name": "ms-asignacion",
+  "version": "1.0.0",
+  "description": "Microservicio de asignacion de becas - UniBecas",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.11.0"
+  }
+}
