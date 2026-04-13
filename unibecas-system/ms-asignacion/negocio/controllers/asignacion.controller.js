@@ -1,5 +1,5 @@
 const http = require("http");
-const pool = require("../db");
+const AsignacionModel = require("../../datos/models/asignacion.model");
 
 // Helper para parsear el body de las peticiones POST/PUT
 const getBody = (req) => {
@@ -73,25 +73,15 @@ async function enrichAsignaciones(asignaciones, solicitudesMap) {
 // GET /asignaciones
 const getAll = async (req, res) => {
   try {
-    // JOIN solo con tablas locales (bd_postulacion)
-    const result = await pool.query(`
-            SELECT a.*,
-                b.NOMBRE AS beca_nombre,
-                co.PERIODO AS convocatoria_periodo,
-                s.ID_ESTUDIANTE
-            FROM ASIGNACION a
-            JOIN SOLICITUD s ON a.ID_SOLICITUD = s.ID
-            JOIN CONVOCATORIA co ON s.ID_CONVOCATORIA = co.ID
-            JOIN BECA b ON co.ID_BECA = b.ID
-        `);
+    const asignaciones = await AsignacionModel.getAsignaciones();
 
     // Obtener datos de estudiantes via HTTP
     const solicitudesMap = {};
-    result.rows.forEach((r) => {
+    asignaciones.forEach((r) => {
       solicitudesMap[r.id_solicitud] = { id_estudiante: r.id_estudiante };
     });
 
-    const enriched = await enrichAsignaciones(result.rows, solicitudesMap);
+    const enriched = await enrichAsignaciones(asignaciones, solicitudesMap);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -117,22 +107,9 @@ const getAll = async (req, res) => {
 const getById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      `
-            SELECT a.*,
-                b.NOMBRE AS beca_nombre,
-                co.PERIODO AS convocatoria_periodo,
-                s.ID_ESTUDIANTE
-            FROM ASIGNACION a
-            JOIN SOLICITUD s ON a.ID_SOLICITUD = s.ID
-            JOIN CONVOCATORIA co ON s.ID_CONVOCATORIA = co.ID
-            JOIN BECA b ON co.ID_BECA = b.ID
-            WHERE a.ID = $1
-        `,
-      [id],
-    );
+    const asignacion = await AsignacionModel.getAsignacionById(id);
 
-    if (result.rows.length === 0) {
+    if (!asignacion) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -145,11 +122,11 @@ const getById = async (req, res) => {
     }
 
     const solicitudesMap = {};
-    solicitudesMap[result.rows[0].id_solicitud] = {
-      id_estudiante: result.rows[0].id_estudiante,
+    solicitudesMap[asignacion.id_solicitud] = {
+      id_estudiante: asignacion.id_estudiante,
     };
 
-    const enriched = await enrichAsignaciones(result.rows, solicitudesMap);
+    const enriched = await enrichAsignaciones([asignacion], solicitudesMap);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -178,16 +155,19 @@ const create = async (req, res) => {
     const { descripcion, periodo, fecha_inicio, fecha_fin, id_solicitud } =
       body;
 
-    const result = await pool.query(
-      "INSERT INTO ASIGNACION (DESCRIPCION, PERIODO, FECHA_INICIO, FECHA_FIN, ID_SOLICITUD) VALUES ($1, $2, $3, $4, $5) RETURNING ID",
-      [descripcion, periodo, fecha_inicio, fecha_fin, id_solicitud],
-    );
+    const id = await AsignacionModel.createAsignacion({
+      descripcion,
+      periodo,
+      fecha_inicio,
+      fecha_fin,
+      id_solicitud,
+    });
 
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
-        data: { id: result.rows[0].id, ...body },
+        data: { id, ...body },
         message: "Asignacion creada correctamente",
       }),
     );
@@ -211,12 +191,15 @@ const update = async (req, res) => {
     const { descripcion, periodo, fecha_inicio, fecha_fin, id_solicitud } =
       body;
 
-    const result = await pool.query(
-      "UPDATE ASIGNACION SET DESCRIPCION = $1, PERIODO = $2, FECHA_INICIO = $3, FECHA_FIN = $4, ID_SOLICITUD = $5 WHERE ID = $6",
-      [descripcion, periodo, fecha_inicio, fecha_fin, id_solicitud, id],
-    );
+    const updated = await AsignacionModel.updateAsignacion(id, {
+      descripcion,
+      periodo,
+      fecha_inicio,
+      fecha_fin,
+      id_solicitud,
+    });
 
-    if (result.rowCount === 0) {
+    if (!updated) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -252,11 +235,9 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("DELETE FROM ASIGNACION WHERE ID = $1", [
-      id,
-    ]);
+    const deleted = await AsignacionModel.deleteAsignacion(id);
 
-    if (result.rowCount === 0) {
+    if (!deleted) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({

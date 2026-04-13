@@ -1,4 +1,4 @@
-const pool = require("../db");
+const ConvocatoriaModel = require("../../datos/models/convocatoria.model");
 
 const getBody = (req) => {
   return new Promise((resolve, reject) => {
@@ -19,23 +19,12 @@ const getBody = (req) => {
 
 const getAll = async (req, res) => {
   try {
-    // Obtener convocatorias con cupos disponibles calculados
-    const result = await pool.query(`
-      SELECT co.*, 
-             b.NOMBRE AS beca_nombre,
-             co.CUPOS - COALESCE(
-               (SELECT COUNT(*) FROM SOLICITUD s 
-                WHERE s.ID_CONVOCATORIA = co.ID 
-                AND s.ESTADO IN ('PENDIENTE', 'APROBADA')), 0
-             ) AS cupos_disponibles
-      FROM CONVOCATORIA co 
-      JOIN BECA b ON co.ID_BECA = b.ID
-    `);
+    const convocatorias = await ConvocatoriaModel.getConvocatorias();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
-        data: result.rows,
+        data: convocatorias,
         message: "Convocatorias obtenidas correctamente",
       }),
     );
@@ -49,11 +38,8 @@ const getAll = async (req, res) => {
 
 const getById = async (req, res, id) => {
   try {
-    const result = await pool.query(
-      "SELECT co.*, b.NOMBRE AS beca_nombre FROM CONVOCATORIA co JOIN BECA b ON co.ID_BECA = b.ID WHERE co.ID = $1",
-      [id],
-    );
-    if (result.rows.length === 0) {
+    const convocatoria = await ConvocatoriaModel.getConvocatoriaById(id);
+    if (!convocatoria) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -68,7 +54,7 @@ const getById = async (req, res, id) => {
     res.end(
       JSON.stringify({
         success: true,
-        data: result.rows[0],
+        data: convocatoria,
         message: "Convocatoria obtenida correctamente",
       }),
     );
@@ -85,16 +71,22 @@ const create = async (req, res) => {
     const body = await getBody(req);
     const { descripcion, periodo, fecha_inicio, fecha_fin, cupos, id_beca } =
       body;
-    const result = await pool.query(
-      "INSERT INTO CONVOCATORIA (DESCRIPCION, PERIODO, FECHA_INICIO, FECHA_FIN, CUPOS, ID_BECA) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID",
-      [descripcion, periodo, fecha_inicio, fecha_fin, cupos, id_beca],
-    );
+
+    const id = await ConvocatoriaModel.createConvocatoria({
+      descripcion,
+      periodo,
+      fecha_inicio,
+      fecha_fin,
+      cupos,
+      id_beca,
+    });
+
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
         data: {
-          ID: result.rows[0].id,
+          ID: id,
           descripcion,
           periodo,
           fecha_inicio,
@@ -118,11 +110,17 @@ const update = async (req, res, id) => {
     const body = await getBody(req);
     const { descripcion, periodo, fecha_inicio, fecha_fin, cupos, id_beca } =
       body;
-    const result = await pool.query(
-      "UPDATE CONVOCATORIA SET DESCRIPCION = $1, PERIODO = $2, FECHA_INICIO = $3, FECHA_FIN = $4, CUPOS = $5, ID_BECA = $6 WHERE ID = $7",
-      [descripcion, periodo, fecha_inicio, fecha_fin, cupos, id_beca, id],
-    );
-    if (result.rowCount === 0) {
+
+    const updated = await ConvocatoriaModel.updateConvocatoria(id, {
+      descripcion,
+      periodo,
+      fecha_inicio,
+      fecha_fin,
+      cupos,
+      id_beca,
+    });
+
+    if (!updated) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -159,10 +157,8 @@ const update = async (req, res, id) => {
 
 const remove = async (req, res, id) => {
   try {
-    const result = await pool.query("DELETE FROM CONVOCATORIA WHERE ID = $1", [
-      id,
-    ]);
-    if (result.rowCount === 0) {
+    const deleted = await ConvocatoriaModel.deleteConvocatoria(id);
+    if (!deleted) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({

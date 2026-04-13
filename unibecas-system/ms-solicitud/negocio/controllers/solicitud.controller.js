@@ -1,5 +1,5 @@
 const http = require("http");
-const pool = require("../db");
+const SolicitudModel = require("../../datos/models/solicitud.model");
 
 // Helper para hacer peticiones HTTP al microservicio de estudiantes
 function fetchEstudiante(id) {
@@ -46,15 +46,8 @@ async function enrichWithEstudiantes(solicitudes) {
 
 const getAll = async (req, res) => {
   try {
-    const result = await pool.query(`
-            SELECT s.*,
-                co.DESCRIPCION AS convocatoria_nombre,
-                co.PERIODO AS convocatoria_periodo
-            FROM SOLICITUD s
-            JOIN CONVOCATORIA co ON s.ID_CONVOCATORIA = co.ID
-        `);
-
-    const enriched = await enrichWithEstudiantes(result.rows);
+    const solicitudes = await SolicitudModel.getSolicitudes();
+    const enriched = await enrichWithEstudiantes(solicitudes);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -79,19 +72,9 @@ const getAll = async (req, res) => {
 const getById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      `
-            SELECT s.*,
-                co.DESCRIPCION AS convocatoria_nombre,
-                co.PERIODO AS convocatoria_periodo
-            FROM SOLICITUD s
-            JOIN CONVOCATORIA co ON s.ID_CONVOCATORIA = co.ID
-            WHERE s.ID = $1
-        `,
-      [id],
-    );
+    const solicitud = await SolicitudModel.getSolicitudById(id);
 
-    if (result.rows.length === 0) {
+    if (!solicitud) {
       res.writeHead(404, { "Content-Type": "application/json" });
       return res.end(
         JSON.stringify({
@@ -102,7 +85,7 @@ const getById = async (req, res) => {
       );
     }
 
-    const enriched = await enrichWithEstudiantes(result.rows);
+    const enriched = await enrichWithEstudiantes([solicitud]);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -143,20 +126,22 @@ const create = async (req, res) => {
       );
     }
 
-    const estado = "PENDIENTE";
-    const result = await pool.query(
-      "INSERT INTO SOLICITUD (FECHA_SOLICITUD, ESTADO, OBSERVACIONES, ID_ESTUDIANTE, ID_CONVOCATORIA) VALUES ($1, $2, $3, $4, $5) RETURNING ID",
-      [fecha_solicitud, estado, observaciones, id_estudiante, id_convocatoria],
-    );
+    const id = await SolicitudModel.createSolicitud({
+      fecha_solicitud,
+      estado: "PENDIENTE",
+      observaciones,
+      id_estudiante,
+      id_convocatoria,
+    });
 
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
         data: {
-          id: result.rows[0].id,
+          id,
           fecha_solicitud,
-          estado,
+          estado: "PENDIENTE",
           observaciones,
           id_estudiante,
           id_convocatoria,
@@ -181,12 +166,12 @@ const update = async (req, res) => {
     const { id } = req.params;
     const { estado, observaciones } = req.body;
 
-    const result = await pool.query(
-      "UPDATE SOLICITUD SET ESTADO = $1, OBSERVACIONES = $2 WHERE ID = $3",
-      [estado, observaciones, id],
-    );
+    const updated = await SolicitudModel.updateSolicitud(id, {
+      estado,
+      observaciones,
+    });
 
-    if (result.rowCount === 0) {
+    if (!updated) {
       res.writeHead(404, { "Content-Type": "application/json" });
       return res.end(
         JSON.stringify({
@@ -220,11 +205,9 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("DELETE FROM SOLICITUD WHERE ID = $1", [
-      id,
-    ]);
+    const deleted = await SolicitudModel.deleteSolicitud(id);
 
-    if (result.rowCount === 0) {
+    if (!deleted) {
       res.writeHead(404, { "Content-Type": "application/json" });
       return res.end(
         JSON.stringify({

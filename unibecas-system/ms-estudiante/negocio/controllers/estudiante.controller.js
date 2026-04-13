@@ -1,4 +1,5 @@
-const pool = require("../db");
+const EstudianteModel = require("../../datos/models/estudiante.model");
+const CarreraEstudianteModel = require("../../datos/models/carrera-estudiante.model");
 
 const getBody = (req) => {
   return new Promise((resolve, reject) => {
@@ -19,13 +20,13 @@ const getBody = (req) => {
 
 const getAll = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM FACULTAD");
+    const estudiantes = await EstudianteModel.getEstudiantes();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
-        data: result.rows,
-        message: "Facultades obtenidas correctamente",
+        data: estudiantes,
+        message: "Estudiantes obtenidos correctamente",
       }),
     );
   } catch (error) {
@@ -38,16 +39,14 @@ const getAll = async (req, res) => {
 
 const getById = async (req, res, id) => {
   try {
-    const result = await pool.query("SELECT * FROM FACULTAD WHERE ID = $1", [
-      id,
-    ]);
-    if (result.rows.length === 0) {
+    const estudiante = await EstudianteModel.getEstudianteById(id);
+    if (!estudiante) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           success: false,
           data: [],
-          message: "Facultad no encontrada",
+          message: "Estudiante no encontrado",
         }),
       );
       return;
@@ -56,8 +55,8 @@ const getById = async (req, res, id) => {
     res.end(
       JSON.stringify({
         success: true,
-        data: result.rows[0],
-        message: "Facultad obtenida correctamente",
+        data: estudiante,
+        message: "Estudiante obtenido correctamente",
       }),
     );
   } catch (error) {
@@ -71,17 +70,43 @@ const getById = async (req, res, id) => {
 const create = async (req, res) => {
   try {
     const body = await getBody(req);
-    const nombre = body.nombre || body.NOMBRE;
-    const result = await pool.query(
-      "INSERT INTO FACULTAD (NOMBRE) VALUES ($1) RETURNING ID",
-      [nombre],
-    );
+    const { codigop, nombre, apellido, email, ppa, activo, carreras } = body;
+
+    const estudianteId = await EstudianteModel.createEstudiante({
+      codigop,
+      nombre,
+      apellido,
+      email,
+      ppa,
+      activo,
+    });
+
+    // Si se envian carreras, insertar en CARRERA_ESTUDIANTE
+    if (carreras && Array.isArray(carreras) && carreras.length > 0) {
+      for (const carrera of carreras) {
+        await CarreraEstudianteModel.addCarreraToEstudiante(
+          estudianteId,
+          carrera.id_carrera,
+          carrera.fecha_inscripcion,
+        );
+      }
+    }
+
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
-        data: { ID: result.rows[0].id, nombre },
-        message: "Facultad creada correctamente",
+        data: {
+          ID: estudianteId,
+          codigop,
+          nombre,
+          apellido,
+          email,
+          ppa,
+          activo,
+          carreras: carreras || [],
+        },
+        message: "Estudiante creado correctamente",
       }),
     );
   } catch (error) {
@@ -95,18 +120,24 @@ const create = async (req, res) => {
 const update = async (req, res, id) => {
   try {
     const body = await getBody(req);
-    const nombre = body.nombre || body.NOMBRE;
-    const result = await pool.query(
-      "UPDATE FACULTAD SET NOMBRE = $1 WHERE ID = $2",
-      [nombre, id],
-    );
-    if (result.rowCount === 0) {
+    const { codigop, nombre, apellido, email, ppa, activo } = body;
+
+    const updated = await EstudianteModel.updateEstudiante(id, {
+      codigop,
+      nombre,
+      apellido,
+      email,
+      ppa,
+      activo,
+    });
+
+    if (!updated) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           success: false,
           data: [],
-          message: "Facultad no encontrada",
+          message: "Estudiante no encontrado",
         }),
       );
       return;
@@ -115,8 +146,16 @@ const update = async (req, res, id) => {
     res.end(
       JSON.stringify({
         success: true,
-        data: { ID: parseInt(id), nombre },
-        message: "Facultad actualizada correctamente",
+        data: {
+          ID: parseInt(id),
+          codigop,
+          nombre,
+          apellido,
+          email,
+          ppa,
+          activo,
+        },
+        message: "Estudiante actualizado correctamente",
       }),
     );
   } catch (error) {
@@ -129,14 +168,14 @@ const update = async (req, res, id) => {
 
 const remove = async (req, res, id) => {
   try {
-    const result = await pool.query("DELETE FROM FACULTAD WHERE ID = $1", [id]);
-    if (result.rowCount === 0) {
+    const deleted = await EstudianteModel.deleteEstudiante(id);
+    if (!deleted) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           success: false,
           data: [],
-          message: "Facultad no encontrada",
+          message: "Estudiante no encontrado",
         }),
       );
       return;
@@ -146,7 +185,7 @@ const remove = async (req, res, id) => {
       JSON.stringify({
         success: true,
         data: [],
-        message: "Facultad eliminada correctamente",
+        message: "Estudiante eliminado correctamente",
       }),
     );
   } catch (error) {

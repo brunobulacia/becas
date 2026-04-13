@@ -1,4 +1,4 @@
-const pool = require("../db");
+const CarreraEstudianteModel = require("../../datos/models/carrera-estudiante.model");
 
 const getBody = (req) => {
   return new Promise((resolve, reject) => {
@@ -19,20 +19,13 @@ const getBody = (req) => {
 
 const getCarreras = async (req, res, id_estudiante) => {
   try {
-    const result = await pool.query(
-      `
-            SELECT ce.*, c.NOMBRE AS carrera_nombre
-            FROM CARRERA_ESTUDIANTE ce
-            INNER JOIN CARRERA c ON ce.ID_CARRERA = c.ID
-            WHERE ce.ID_ESTUDIANTE = $1
-        `,
-      [id_estudiante],
-    );
+    const carreras =
+      await CarreraEstudianteModel.getByEstudiante(id_estudiante);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         success: true,
-        data: result.rows,
+        data: carreras,
         message: "Carreras del estudiante obtenidas correctamente",
       }),
     );
@@ -48,10 +41,13 @@ const enrollCarrera = async (req, res, id_estudiante) => {
   try {
     const body = await getBody(req);
     const { id_carrera, fecha_inscripcion } = body;
-    await pool.query(
-      "INSERT INTO CARRERA_ESTUDIANTE (ID_ESTUDIANTE, ID_CARRERA, FECHA_INSCRIPCION) VALUES ($1, $2, $3)",
-      [id_estudiante, id_carrera, fecha_inscripcion],
+
+    await CarreraEstudianteModel.addCarreraToEstudiante(
+      id_estudiante,
+      id_carrera,
+      fecha_inscripcion,
     );
+
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
@@ -74,11 +70,12 @@ const enrollCarrera = async (req, res, id_estudiante) => {
 
 const unenrollCarrera = async (req, res, id_estudiante, id_carrera) => {
   try {
-    const result = await pool.query(
-      "DELETE FROM CARRERA_ESTUDIANTE WHERE ID_ESTUDIANTE = $1 AND ID_CARRERA = $2",
-      [id_estudiante, id_carrera],
+    const removed = await CarreraEstudianteModel.removeCarreraFromEstudiante(
+      id_estudiante,
+      id_carrera,
     );
-    if (result.rowCount === 0) {
+
+    if (!removed) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
