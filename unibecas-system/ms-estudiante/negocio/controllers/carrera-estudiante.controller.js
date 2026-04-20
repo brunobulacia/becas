@@ -20,7 +20,7 @@ const getBody = (req) => {
 const getCarreras = async (req, res, id_estudiante) => {
   try {
     const carreras =
-      await CarreraEstudianteModel.getByEstudiante(id_estudiante);
+      await CarreraEstudianteModel.getCarrerasByEstudiante(id_estudiante);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
@@ -42,11 +42,11 @@ const enrollCarrera = async (req, res, id_estudiante) => {
     const body = await getBody(req);
     const { id_carrera, fecha_inscripcion } = body;
 
-    await CarreraEstudianteModel.addCarreraToEstudiante(
-      id_estudiante,
+    await CarreraEstudianteModel.createCarreraEstudiante({
+      id_estudiante: parseInt(id_estudiante),
       id_carrera,
       fecha_inscripcion,
-    );
+    });
 
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(
@@ -70,12 +70,10 @@ const enrollCarrera = async (req, res, id_estudiante) => {
 
 const unenrollCarrera = async (req, res, id_estudiante, id_carrera) => {
   try {
-    const removed = await CarreraEstudianteModel.removeCarreraFromEstudiante(
-      id_estudiante,
-      id_carrera,
-    );
+    const carreras = await CarreraEstudianteModel.getCarrerasByEstudiante(id_estudiante);
+    const relacion = carreras.find((c) => c.id_carrera === parseInt(id_carrera));
 
-    if (!removed) {
+    if (!relacion) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -86,6 +84,7 @@ const unenrollCarrera = async (req, res, id_estudiante, id_carrera) => {
       );
       return;
     }
+    await CarreraEstudianteModel.deleteCarreraEstudiante(id_estudiante, id_carrera);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({

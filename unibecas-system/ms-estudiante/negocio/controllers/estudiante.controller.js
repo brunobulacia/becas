@@ -84,11 +84,11 @@ const create = async (req, res) => {
     // Si se envian carreras, insertar en CARRERA_ESTUDIANTE
     if (carreras && Array.isArray(carreras) && carreras.length > 0) {
       for (const carrera of carreras) {
-        await CarreraEstudianteModel.addCarreraToEstudiante(
-          estudianteId,
-          carrera.id_carrera,
-          carrera.fecha_inscripcion,
-        );
+        await CarreraEstudianteModel.createCarreraEstudiante({
+          id_estudiante: estudianteId,
+          id_carrera: carrera.id_carrera,
+          fecha_inscripcion: carrera.fecha_inscripcion,
+        });
       }
     }
 
@@ -196,4 +196,89 @@ const remove = async (req, res, id) => {
   }
 };
 
-module.exports = { getAll, getById, create, update, remove };
+const getCarreras = async (req, res, id) => {
+  try {
+    const carreras = await CarreraEstudianteModel.getCarrerasByEstudiante(id);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: carreras,
+        message: "Carreras del estudiante obtenidas correctamente",
+      }),
+    );
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ success: false, data: [], message: error.message }),
+    );
+  }
+};
+
+const addCarrera = async (req, res, id) => {
+  try {
+    const body = await getBody(req);
+    const result = await CarreraEstudianteModel.createCarreraEstudiante({
+      id_estudiante: parseInt(id),
+      id_carrera: body.id_carrera,
+      fecha_inscripcion: body.fecha_inscripcion,
+    });
+    res.writeHead(201, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: result,
+        message: "Estudiante inscrito en carrera correctamente",
+      }),
+    );
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ success: false, data: [], message: error.message }),
+    );
+  }
+};
+
+const removeCarrera = async (req, res, estudianteId, carreraId) => {
+  try {
+    const carreras =
+      await CarreraEstudianteModel.getCarrerasByEstudiante(estudianteId);
+    const relacion = carreras.find((c) => c.id_carrera === parseInt(carreraId));
+    if (!relacion) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          success: false,
+          data: [],
+          message: "Relación no encontrada",
+        }),
+      );
+      return;
+    }
+    await CarreraEstudianteModel.deleteCarreraEstudiante(estudianteId, carreraId);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: [],
+        message: "Estudiante desinscrito correctamente",
+      }),
+    );
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ success: false, data: [], message: error.message }),
+    );
+  }
+};
+
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  remove,
+  getCarreras,
+  addCarrera,
+  removeCarrera,
+};

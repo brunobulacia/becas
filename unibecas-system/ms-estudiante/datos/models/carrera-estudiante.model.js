@@ -85,16 +85,11 @@ class CarreraEstudianteModel {
    */
   static async createCarreraEstudiante(data) {
     const { id_estudiante, id_carrera, fecha_inscripcion } = data;
-    const result = await pool.query(
-      "INSERT INTO CARRERA_ESTUDIANTE (ID_ESTUDIANTE, ID_CARRERA, FECHA_INSCRIPCION) VALUES ($1, $2, $3) RETURNING ID",
+    await pool.query(
+      "INSERT INTO CARRERA_ESTUDIANTE (ID_ESTUDIANTE, ID_CARRERA, FECHA_INSCRIPCION) VALUES ($1, $2, $3)",
       [id_estudiante, id_carrera, fecha_inscripcion],
     );
-    return {
-      id: result.rows[0].id,
-      id_estudiante,
-      id_carrera,
-      fecha_inscripcion,
-    };
+    return { id_estudiante, id_carrera, fecha_inscripcion };
   }
 
   /**
@@ -120,10 +115,10 @@ class CarreraEstudianteModel {
    * @param {number} id - ID de la relación
    * @returns {Promise<boolean>} true si se eliminó, false si no existía
    */
-  static async deleteCarreraEstudiante(id) {
+  static async deleteCarreraEstudiante(id_estudiante, id_carrera) {
     const result = await pool.query(
-      "DELETE FROM CARRERA_ESTUDIANTE WHERE ID = $1",
-      [id],
+      "DELETE FROM CARRERA_ESTUDIANTE WHERE ID_ESTUDIANTE = $1 AND ID_CARRERA = $2",
+      [id_estudiante, id_carrera],
     );
     return result.rowCount > 0;
   }
