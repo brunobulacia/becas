@@ -1,5 +1,5 @@
-const http = require('http');
-const { proxyRequest } = require('./gateway');
+const http = require("http");
+const { proxyRequest } = require("./api-gateway");
 
 const PORT = 3000;
 
