@@ -86,9 +86,10 @@
     </main>
 
     <script src="components/navbar.js"></script>
-    <script src="js/api.js"></script>
     <script>
         loadNavbar('navbar');
+
+        const API_BASE = 'http://localhost:3000/api';
 
         async function loadCounts() {
             const endpoints = [
@@ -103,7 +104,7 @@
 
             for (const item of endpoints) {
                 try {
-                    const response = await api.get(item.endpoint);
+                    const response = await fetch(`${API_BASE}${item.endpoint}`).then(r => r.json());
                     const data = response.data || [];
                     const count = Array.isArray(data) ? data.length : 0;
                     document.getElementById(item.id).textContent = count;

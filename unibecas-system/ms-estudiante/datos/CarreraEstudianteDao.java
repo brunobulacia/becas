@@ -7,7 +7,8 @@ import java.util.*;
 public class CarreraEstudianteDao {
 
     private static final String SQL_JOIN =
-        "SELECT ce.*, e.NOMBRE AS estudiante_nombre, e.APELLIDO AS estudiante_apellido, " +
+        "SELECT ce.ID_ESTUDIANTE, ce.ID_CARRERA, ce.FECHA_INSCRIPCION, " +
+        "e.NOMBRE AS estudiante_nombre, e.APELLIDO AS estudiante_apellido, " +
         "c.NOMBRE AS carrera_nombre FROM CARRERA_ESTUDIANTE ce " +
         "JOIN ESTUDIANTE e ON ce.ID_ESTUDIANTE = e.ID " +
         "JOIN CARRERA c ON ce.ID_CARRERA = c.ID ";
@@ -15,26 +16,17 @@ public class CarreraEstudianteDao {
     public static List<CarreraEstudiante> getAll() throws SQLException {
         List<CarreraEstudiante> lista = new ArrayList<>();
         try (Connection c = ConexionBD.getConnection();
-             PreparedStatement ps = c.prepareStatement(SQL_JOIN + "ORDER BY ce.ID");
+             PreparedStatement ps = c.prepareStatement(SQL_JOIN + "ORDER BY ce.ID_ESTUDIANTE");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         }
         return lista;
     }
 
-    public static CarreraEstudiante getById(int id) throws SQLException {
-        try (Connection c = ConexionBD.getConnection();
-             PreparedStatement ps = c.prepareStatement(SQL_JOIN + "WHERE ce.ID=?")) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? mapear(rs) : null;
-            }
-        }
-    }
-
     public static List<CarreraEstudiante> getByEstudiante(int idEstudiante) throws SQLException {
         List<CarreraEstudiante> lista = new ArrayList<>();
-        String sql = "SELECT ce.*, c.NOMBRE AS carrera_nombre FROM CARRERA_ESTUDIANTE ce " +
+        String sql = "SELECT ce.ID_ESTUDIANTE, ce.ID_CARRERA, ce.FECHA_INSCRIPCION, " +
+                     "c.NOMBRE AS carrera_nombre FROM CARRERA_ESTUDIANTE ce " +
                      "JOIN CARRERA c ON ce.ID_CARRERA = c.ID WHERE ce.ID_ESTUDIANTE=?";
         try (Connection c = ConexionBD.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -42,7 +34,6 @@ public class CarreraEstudianteDao {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     CarreraEstudiante ce = new CarreraEstudiante();
-                    ce.setId(rs.getInt("id"));
                     ce.setIdEstudiante(idEstudiante);
                     ce.setIdCarrera(rs.getInt("id_carrera"));
                     ce.setFechaInscripcion(String.valueOf(rs.getDate("fecha_inscripcion")));
@@ -77,7 +68,7 @@ public class CarreraEstudianteDao {
 
     private static CarreraEstudiante mapear(ResultSet rs) throws SQLException {
         return new CarreraEstudiante(
-            rs.getInt("id"),
+            0,
             rs.getInt("id_estudiante"),
             rs.getInt("id_carrera"),
             String.valueOf(rs.getDate("fecha_inscripcion")),
