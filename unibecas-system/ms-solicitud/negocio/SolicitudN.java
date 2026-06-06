@@ -2,12 +2,24 @@ package negocio;
 
 import datos.SolicitudDao;
 import datos.entidades.Solicitud;
-import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.regex.*;
 
 public class SolicitudN {
+
+    // Patrón Strategy: SolicitudN actúa como Client, delega validaciones al Context
+    private final ValidacionContext contexto;
+
+    public SolicitudN() {
+        contexto = new ValidacionContext();
+        contexto.agregarEstrategia(new ValidacionEstudianteActivoStrategy());
+        contexto.agregarEstrategia(new ValidacionConvocatoriaAbiertaStrategy());
+    }
+
+    public SolicitudN(ValidacionContext contexto) {
+        this.contexto = contexto;
+    }
 
     public List<Solicitud> getAll() throws Exception {
         List<Solicitud> lista = SolicitudDao.getAll();
@@ -28,6 +40,10 @@ public class SolicitudN {
         s.setObservaciones(d.get("observaciones"));
         s.setIdEstudiante(Integer.parseInt(d.getOrDefault("id_estudiante", "0")));
         s.setIdConvocatoria(Integer.parseInt(d.getOrDefault("id_convocatoria", "0")));
+
+        // Patrón Strategy: el Context ejecuta todas las estrategias en orden
+        contexto.ejecutar(s);
+
         int id = SolicitudDao.create(s);
         s.setId(id);
         return s;

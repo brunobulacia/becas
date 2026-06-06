@@ -8,6 +8,17 @@ import java.util.regex.*;
 
 public class AsignacionN {
 
+    // Patrón Template Method: delega la creación al template concreto
+    private final AsignacionTemplate template;
+
+    public AsignacionN() {
+        this.template = new AsignacionAprobadaN();
+    }
+
+    public AsignacionN(AsignacionTemplate template) {
+        this.template = template;
+    }
+
     public List<Asignacion> getAll() throws Exception {
         List<Asignacion> lista = AsignacionDao.getAll();
         enriquecer(lista);
@@ -21,15 +32,7 @@ public class AsignacionN {
     }
 
     public Asignacion create(Map<String, String> d) throws Exception {
-        Asignacion a = new Asignacion();
-        a.setDescripcion(d.get("descripcion"));
-        a.setPeriodo(d.get("periodo"));
-        a.setFechaInicio(d.get("fecha_inicio"));
-        a.setFechaFin(d.get("fecha_fin"));
-        a.setIdSolicitud(Integer.parseInt(d.getOrDefault("id_solicitud", "0")));
-        int id = AsignacionDao.create(a);
-        a.setId(id);
-        return a;
+        return template.ejecutar(d);
     }
 
     public Asignacion update(int id, Map<String, String> d) throws Exception {
